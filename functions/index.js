@@ -1,19 +1,36 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+admin.initializeApp(functions.config().firebase);
+let msgData;
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+exports.offerTrigger = functions.firestore.document("orders/{orderId}").onCreate((snapshot, context) => {
+  msgData = snapshot.data();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  admin.firestore().collection("tokens").get().then((snapshots) => {
+    const tokens = [];
+    if (snapshots.empty) {
+      console.log("No Devices Found");
+    } else {
+      snapshots.forEach((doc) => {
+        tokens.push(doc.data().token);
+      });
+
+      const payload = {
+        "notification": {
+          "title": "From " + msgData.data,
+          "body": "Offer is : ",
+          "sound": "default",
+        },
+      };
+
+      return admin.messaging().sendToDevice(tokens, payload)
+        .then((response) => {
+          console.log("pushed them all");
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+  });
+});

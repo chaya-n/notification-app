@@ -9,11 +9,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   FirebaseNotificationsHandler().printToken();
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+  TextEditingController dataController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -22,8 +23,43 @@ class MyApp extends StatelessWidget {
           appBar: AppBar(
             title: const Text('FCM'),
           ),
-          body: const Center(
-            child: Text('Hi barbie'),
+          body: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              const Center(
+                child: Text('Hi barbie'),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: TextField(
+                  controller: dataController,
+                  decoration: const InputDecoration(hintText: 'Add here'),
+                ),
+              ),
+              ElevatedButton(
+                  onPressed: () {
+                    FirestoreHandler()
+                        .addToFirestore({"data": dataController.text}
+                            as Map<String, dynamic>)
+                        .then((value) {
+                      print('success');
+                      var snackBar = const SnackBar(
+                        content: Text('Successful'),
+                        backgroundColor: Colors.green,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    }).onError((error, stackTrace) {
+                      print(error.toString());
+                      var snackBar = const SnackBar(
+                        content: Text('Failure'),
+                        backgroundColor: Colors.red,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    });
+                    dataController.clear();
+                  },
+                  child: const Text('Add data'))
+            ],
           ),
         ));
   }
